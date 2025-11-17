@@ -22,3 +22,5 @@
 *.aab binary
 *.so binary
 *.dex binary
+*.wav binary
+*.pdf binary
