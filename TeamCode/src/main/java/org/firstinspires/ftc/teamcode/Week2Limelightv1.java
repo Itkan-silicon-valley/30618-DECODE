@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 // Import for PIDF control
@@ -9,6 +11,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx; // Import the DcMotorEx class
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -16,8 +19,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.List;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.FileLogger;
 
-@TeleOp(name = "week2Limelightv3", group = "Competition")
+@TeleOp(name = "week2Limelightv4", group = "Competition")
 // @Disabled
 public class Week2Limelightv1 extends LinearOpMode {
 
@@ -25,7 +29,7 @@ public class Week2Limelightv1 extends LinearOpMode {
     // drive motors
     DcMotorEx frontLeft, frontRight, backLeft, backRight;
     // other motors
-    DcMotorEx intake, shooter, transfer, turret;
+    DcMotorEx intake, shooter1, shooter2, transfer;//, turret;
     // limelight
     private Limelight3A limelight;
 
@@ -54,6 +58,8 @@ public class Week2Limelightv1 extends LinearOpMode {
     boolean fieldBasedDriving = false;
     double forward, strafe, rotate;
 
+    FileLogger logger = new FileLogger("robot_log.txt");
+
     @Override
     public void runOpMode() {
         telemetry.addData("Status", "Initializing...");
@@ -66,18 +72,22 @@ public class Week2Limelightv1 extends LinearOpMode {
         backRight = hardwareMap.get(DcMotorEx.class, "BackRight");
 
         intake = hardwareMap.get(DcMotorEx.class, "Intake");
-        shooter =
-                hardwareMap.get(DcMotorEx.class, "Shooter"); // Mapped as DcMotorEx to read encoder
+        shooter1 =
+                hardwareMap.get(DcMotorEx.class, "Shooter1");
+        shooter2 =
+                hardwareMap.get(DcMotorEx.class, "Shooter2");
         transfer = hardwareMap.get(DcMotorEx.class, "Transfer");
-        turret = hardwareMap.get(DcMotorEx.class, "Turret");
+        //turret = hardwareMap.get(DcMotorEx.class, "Turret");
 
         PIDFCoefficients shooterPIDF = new PIDFCoefficients(53, 0.02, 3, 11);
-        shooter.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, shooterPIDF);
+        shooter1.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, shooterPIDF);
+        shooter2.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, shooterPIDF);
 
         hold = hardwareMap.get(Servo.class, "hold");
         arm = hardwareMap.get(Servo.class, "kicker");
         telemetry.setMsTransmissionInterval(5);
-        shooter.setPower(0);
+
+        setShooterPower(0);
 
         // --- MOTOR DIRECTION ---
         // drive motors
@@ -86,7 +96,8 @@ public class Week2Limelightv1 extends LinearOpMode {
         frontRight.setDirection(DcMotor.Direction.REVERSE);
         backRight.setDirection(DcMotor.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.REVERSE);
-        shooter.setDirection(DcMotor.Direction.FORWARD);
+        shooter1.setDirection(DcMotor.Direction.FORWARD);
+        shooter2.setDirection(DcMotor.Direction.REVERSE);
 
         // motor behaviors
 
@@ -97,10 +108,12 @@ public class Week2Limelightv1 extends LinearOpMode {
         backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         // other motrs
         transfer.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        turret.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        //turret.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        shooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shooter1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        shooter1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shooter2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        shooter2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // drive motor modes
         frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -128,7 +141,7 @@ public class Week2Limelightv1 extends LinearOpMode {
 
         limelight.pipelineSwitch(0);
 
-        CAMERA_ANGLE_RADIANS_H_PLANE = 0.1658; // Math.toRadians(25);//0.1658;
+        CAMERA_ANGLE_RADIANS_H_PLANE = 0.175;//0.1658; // Math.toRadians(25);//0.1658;
 
         // Now initialize the IMU with this mounting orientation
         imu = hardwareMap.get(IMU.class, "imu");
@@ -138,6 +151,8 @@ public class Week2Limelightv1 extends LinearOpMode {
                         RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD);
 
         imu.initialize(new IMU.Parameters(RevOrientation));
+        
+        logger.write("OpMode initialized");
 
         waitForStart();
         /*
@@ -149,6 +164,18 @@ public class Week2Limelightv1 extends LinearOpMode {
         runtime.reset();
 
         intake.setPower(1);
+
+        int counter = 0;
+        
+        /*setShooterPower(1);
+        sleep(3000);
+        setShooterPower(1);
+        sleep(3000);*/
+        
+        double capacity = 0;
+        double capacity1 = 0;
+        double ki = 0.00005;
+        double kp = 0.00;
 
         while (opModeIsActive()) {
 
@@ -221,6 +248,7 @@ public class Week2Limelightv1 extends LinearOpMode {
 
             double prevX = 100;
 
+
             while (gamepad1.triangle && Math.abs(prevX) > 0.5) {
                 LLResult result = limelight.getLatestResult();
                 if (result.isValid()) {
@@ -253,34 +281,61 @@ public class Week2Limelightv1 extends LinearOpMode {
             if ((gamepad2.a || gamepad1.a)) {
 
                 // trying to fire
-                if (shooter.getVelocity() >= newTargetVelocity) {
+                //Math.abs(shooter1.getVelocity() - newTargetVelocity) < 50
+                double error = newTargetVelocity - shooter1.getVelocity();
+                if (Math.abs(error) < 100) {//shooter1.getVelocity() >= newTargetVelocity) {
                     // good to shoot
-                    shooter.setPower(0.75); // was 0.55
                     shoot = true;
                     // sleep(100);
                 } else {
                     // need to spin up more
                     shoot = false;
-                    shooter.setPower(1);
                 }
+                capacity += ki * error;
+                // capacity = kp * error + capacity1;
+                //capacity += ki * error; --> good
+                //capacity = kp * error + 0.5;
+                
+                capacity = Math.max(0.1, capacity);
+                capacity = Math.min(1, capacity);
+                
+                setShooterPower(capacity);
+                
+                // log every N iterations
+                if(counter%1 == 0) {
+                    String time = new SimpleDateFormat("HH:mm:ss.SSS").format(new Date());
+                    logger.write("Time: " + time +
+                        ". Target velocity: " + newTargetVelocity +
+                        ". velocity is: " + shooter1.getVelocity() +
+                        ". capacity is: " + capacity +
+                        ". shoot: " + shoot +
+                        "\n");
+                    counter = 0;
+                }
+                counter++;
+                
             } else {
                 // Stop the shooter when not spinning up
-                shooter.setPower(0.4);
+                setShooterPower(0);
                 shoot = false;
+                capacity = 0.5;// --> good
+                //capacity1 = 1.0;
             }
 
-            if (shooter.getVelocity() >= (newTargetVelocity - 100)) {
+            //if (shooter1.getVelocity() >= (newTargetVelocity - 100)) {
+            /*if(Math.abs(newTargetVelocity - shooter1.getVelocity()) < 100) {
                 openHold = true;
             } else {
                 openHold = false;
-            }
+            }*/
+            openHold = shoot;
 
             // shooting
             // || (shoot && aligned && limelightid == targetId && gamepad2.b)
             if (openHold) {
                 hold.setPosition(0.2);
                 sleep(100);
-                transfer.setPower(0.8);
+                transfer.setPower(0.6);
                 intake.setPower(-1);
                 // sleep(50);
                 // arm.setPosition(1);
@@ -319,7 +374,7 @@ public class Week2Limelightv1 extends LinearOpMode {
                 fieldBasedDriving = false;
             }
             // climber
-            if (gamepad1.dpad_up || gamepad2.dpad_up) {
+            /*if (gamepad1.dpad_up || gamepad2.dpad_up) {
                 turret.setPower(1);
             } else if (gamepad1.dpad_down || gamepad2.dpad_down) {
                 climbHold = true;
@@ -331,13 +386,13 @@ public class Week2Limelightv1 extends LinearOpMode {
                 } else {
                     turret.setPower(0.0);
                 }
-            }
+            }*/
 
             // telemetry
             telemetry.addData("Status", "Initialized");
             telemetry.addData("--- Shooter ---", "");
-            telemetry.addData("Actual Velocity", "%.2f", shooter.getVelocity());
-            telemetry.addData("Shooter Power", "%.2f", shooter.getPower());
+            telemetry.addData("Actual Velocity", "%.2f", shooter1.getVelocity());
+            telemetry.addData("Shooter Power", "%.2f", shooter1.getPower());
             telemetry.addData("Open Hold", openHold);
             telemetry.addData("FieldBasedDriving", fieldBasedDriving);
             telemetry.update();
@@ -449,5 +504,10 @@ public class Week2Limelightv1 extends LinearOpMode {
         backLeft.setPower(backLeftPower);
         frontRight.setPower(frontRightPower);
         backRight.setPower(backRightPower);
+    }
+
+    private void setShooterPower(double power) {
+        shooter1.setPower(power);
+        shooter2.setPower(power);
     }
 }
