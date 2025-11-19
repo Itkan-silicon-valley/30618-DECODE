@@ -13,13 +13,15 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-@TeleOp(name = "week2Limelightv4", group = "Competition")
+@TeleOp(name = "week2Limelightv1", group = "Competition")
 // @Disabled
 public class Week2Limelightv1 extends LinearOpMode {
 
@@ -30,6 +32,11 @@ public class Week2Limelightv1 extends LinearOpMode {
     DcMotorEx intake, shooter1, shooter2, transfer; // , turret;
     // limelight
     private Limelight3A limelight;
+    double prevX = 100;
+    int capacityCtr = 0;
+
+    int capacityCtrMod = 22;
+
 
     // IMU
     private IMU imu;
@@ -48,8 +55,7 @@ public class Week2Limelightv1 extends LinearOpMode {
 
     private static final double CAMERA_HEIGHT_MM = 370.; // 380.0;
     // You must still define the target height in MM (e.g., center of a game-specific AprilTag)
-    private static final double TARGET_HEIGHT_MM =
-            744; // 476.25; // 140.0; // Placeholder value, YOU MUST CHANGE THIS
+    private static final double TARGET_HEIGHT_MM = 744; // 476.25; // 140.0; // Placeholder value, YOU MUST CHANGE THIS
 
     private static final int TARGET_TAG_ID = 20;
 
@@ -141,10 +147,7 @@ public class Week2Limelightv1 extends LinearOpMode {
 
         // Now initialize the IMU with this mounting orientation
         imu = hardwareMap.get(IMU.class, "imu");
-        RevHubOrientationOnRobot RevOrientation =
-                new RevHubOrientationOnRobot(
-                        RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                        RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD);
+        RevHubOrientationOnRobot RevOrientation = new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP, RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD);
 
         imu.initialize(new IMU.Parameters(RevOrientation));
 
@@ -159,7 +162,7 @@ public class Week2Limelightv1 extends LinearOpMode {
         */
         runtime.reset();
 
-        intake.setPower(1);
+        // intake.setPower(1);
 
         int counter = 0;
 
@@ -193,19 +196,18 @@ public class Week2Limelightv1 extends LinearOpMode {
 
                 LLResult result = limelight.getLatestResult();
                 if (result.isValid()) {
-                    List<LLResultTypes.FiducialResult> fiducialResults =
-                            result.getFiducialResults();
+                    List<LLResultTypes.FiducialResult> fiducialResults = result.getFiducialResults();
                     for (LLResultTypes.FiducialResult fr : fiducialResults) {
                         if (fr.getFiducialId() != TARGET_TAG_ID) continue;
                         distance = calculateDistance(Math.toRadians(result.getTy()), telemetry);
-                        telemetry.addData(
+/*                        telemetry.addData(
                                 "Fiducial",
                                 "ID: %d, Family: %s, X: %.2f, Y: %.2f, angle: %.2f",
                                 fr.getFiducialId(),
                                 fr.getFamily(),
                                 fr.getTargetXDegrees(),
                                 fr.getTargetYDegrees(),
-                                result.getTy());
+                                result.getTy());*/
                     }
                 }
 
@@ -242,24 +244,21 @@ public class Week2Limelightv1 extends LinearOpMode {
             telemetry.addData("Target velocity ", newTargetVelocity);
             telemetry.addData("Distance ", distance);
 
-            double prevX = 100;
 
-            while (gamepad1.triangle && Math.abs(prevX) > 0.5) {
+            if (gamepad1.triangle && Math.abs(prevX) > 0.5) {
                 LLResult result = limelight.getLatestResult();
                 if (result.isValid()) {
-                    List<LLResultTypes.FiducialResult> fiducialResults =
-                            result.getFiducialResults();
+                    List<LLResultTypes.FiducialResult> fiducialResults = result.getFiducialResults();
                     for (LLResultTypes.FiducialResult fr : fiducialResults) {
                         if (fr.getFiducialId() != TARGET_TAG_ID) continue;
                         prevX = fr.getTargetXDegrees();
-                        telemetry.addData(
+/*                        telemetry.addData(
                                 "Fiducial for direction",
                                 "ID: %d, X: %.2f, Y: %.2f, angle: %.2f",
                                 fr.getFiducialId(),
                                 fr.getTargetXDegrees(),
                                 fr.getTargetYDegrees(),
-                                result.getTy());
-                        telemetry.update();
+                                result.getTy());*/
                         // double speed = prevX;
                         // while(Math.abs(speed) > 0.2) speed = speed / 10;
                         double speed;
@@ -270,7 +269,7 @@ public class Week2Limelightv1 extends LinearOpMode {
                         else rotate(speed);
                         break;
                     }
-                } else break;
+                }
             }
 
             if ((gamepad2.a || gamepad1.a)) {
@@ -286,31 +285,23 @@ public class Week2Limelightv1 extends LinearOpMode {
                     // need to spin up more
                     shoot = false;
                 }
-                capacity += ki * error;
-                // capacity = kp * error + capacity1;
-                // capacity += ki * error; --> good
-                // capacity = kp * error + 0.5;
 
-                capacity = Math.max(0.1, capacity);
-                capacity = Math.min(1, capacity);
+                if (capacityCtr++ % capacityCtrMod == 0) {
+                    capacity += ki * error;
+                    // capacity = kp * error + capacity1;
+                    // capacity += ki * error; --> good
+                    // capacity = kp * error + 0.5;
 
-                setShooterPower(capacity);
+                    capacity = Math.max(0.1, capacity);
+                    capacity = Math.min(1, capacity);
+
+                    setShooterPower(capacity);
+                }
 
                 // log every N iterations
-                if (counter % 1 == 0) {
+                if (false/* counter % 1 == 0*/) {
                     String time = new SimpleDateFormat("HH:mm:ss.SSS").format(new Date());
-                    logger.write(
-                            "Time: "
-                                    + time
-                                    + ". Target velocity: "
-                                    + newTargetVelocity
-                                    + ". velocity is: "
-                                    + shooter1.getVelocity()
-                                    + ". capacity is: "
-                                    + capacity
-                                    + ". shoot: "
-                                    + shoot
-                                    + "\n");
+                    logger.write("Time: " + time + ". Target velocity: " + newTargetVelocity + ". velocity is: " + shooter1.getVelocity() + ". capacity is: " + capacity + ". shoot: " + shoot + "\n");
                     counter = 0;
                 }
                 counter++;
@@ -336,7 +327,7 @@ public class Week2Limelightv1 extends LinearOpMode {
             if (openHold) {
                 hold.setPosition(0.2);
                 sleep(100);
-                transfer.setPower(0.6);
+                transfer.setPower(1);
                 intake.setPower(-1);
                 // sleep(50);
                 // arm.setPosition(1);
@@ -345,26 +336,27 @@ public class Week2Limelightv1 extends LinearOpMode {
                 // arm.setPosition(0);
             }
 
-            if (gamepad1.dpad_down) newTargetVelocity++;
-            if (gamepad1.dpad_up) newTargetVelocity--;
+            if (gamepad1.dpad_down) capacityCtrMod++;
+            if (gamepad1.dpad_up) capacityCtrMod--;
 
             if ((gamepad2.x || gamepad1.x || (shoot && (gamepad2.b || gamepad1.b)))) {
+                telemetry.addData("At 1", "");
                 transfer.setPower(1);
                 intake.setPower(-1);
-
             } else {
-
-                if (gamepad1.right_trigger > 0.1) {
+                if (gamepad1.right_trigger > 0.3) {
                     intake.setPower(-1);
                     transfer.setPower(1);
-                } else if (gamepad1.left_trigger > 0.1) {
+                    telemetry.addData("At 2", gamepad1.right_trigger);
+                } else if (gamepad1.left_trigger > 0.3) {
                     intake.setPower(1);
                     transfer.setPower(-1);
-
+                    telemetry.addData("At 3", gamepad1.left_trigger);
                 } else {
                     if (!openHold) {
                         transfer.setPower(0);
                         intake.setPower(0);
+                        telemetry.addData("At 4", "");
                     }
                 }
             }
@@ -396,6 +388,7 @@ public class Week2Limelightv1 extends LinearOpMode {
             telemetry.addData("Shooter Power", "%.2f", shooter1.getPower());
             telemetry.addData("Open Hold", openHold);
             telemetry.addData("FieldBasedDriving", fieldBasedDriving);
+            telemetry.addData("capacityCtrMod", capacityCtrMod);
             telemetry.update();
         }
     }
@@ -408,17 +401,14 @@ public class Week2Limelightv1 extends LinearOpMode {
         double theta = Math.atan2(forward, strafe);
         double r = Math.hypot(strafe, forward);
 
-        theta =
-                AngleUnit.normalizeRadians(
-                        theta - imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
+        theta = AngleUnit.normalizeRadians(theta - imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
         double newForward = r * Math.sin(theta);
         double newStrafe = r * Math.cos(theta);
 
         this.drive(newForward, newStrafe, rotate, /*maxPower*/ 1.0, /*maxSpeed*/ 1.0);
     }
 
-    private void drive(
-            double forward, double strafe, double rotate, double maxPower, double maxSpeed) {
+    private void drive(double forward, double strafe, double rotate, double maxPower, double maxSpeed) {
         double frontLeftPower = forward + strafe + rotate;
         double frontRightPower = forward - strafe - rotate;
         double backLeftPower = forward - strafe + rotate;
@@ -447,10 +437,7 @@ public class Week2Limelightv1 extends LinearOpMode {
         double backRightPower = y + x - rx;
 
         // Optional: Normalize powers if exceeding 1.0
-        double max =
-                Math.max(
-                        Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower)),
-                        Math.max(Math.abs(backLeftPower), Math.abs(backRightPower)));
+        double max = Math.max(Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower)), Math.max(Math.abs(backLeftPower), Math.abs(backRightPower)));
         if (max > 1.0) {
             frontLeftPower /= max;
             backLeftPower /= max;
@@ -473,8 +460,7 @@ public class Week2Limelightv1 extends LinearOpMode {
         double totalAngleRadians = CAMERA_ANGLE_RADIANS_H_PLANE + targetYAngleRadians;
 
         // Use the formula: distance = (h2 - h1) / tan(angle)
-        double currentDistance =
-                (TARGET_HEIGHT_MM - CAMERA_HEIGHT_MM) / Math.sin(totalAngleRadians);
+        double currentDistance = (TARGET_HEIGHT_MM - CAMERA_HEIGHT_MM) / Math.sin(totalAngleRadians);
 
         telemetry.addData("BBB1", totalAngleRadians);
         telemetry.addData("BBB2", Math.sin(totalAngleRadians));
@@ -489,10 +475,7 @@ public class Week2Limelightv1 extends LinearOpMode {
         double frontRightPower = 0 - rx;
         double backRightPower = 0 - rx;
 
-        double max =
-                Math.max(
-                        Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower)),
-                        Math.max(Math.abs(backLeftPower), Math.abs(backRightPower)));
+        double max = Math.max(Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower)), Math.max(Math.abs(backLeftPower), Math.abs(backRightPower)));
 
         if (max > 1.0) {
             frontLeftPower /= max;
