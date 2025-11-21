@@ -5,18 +5,18 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 /**
- * This is an ABSTRACT class that contains all the common functionality for our autonomous modes.
- * It is not a real OpMode that can be run on its own.
- * Instead, other classes like "BlueAuto" and "RedAuto" will EXTEND this class.
- * <p>
- * It defines the robot's hardware and common action methods, but requires specific
- * values (aprilTagId and closeToGoal) to be provided by its subclasses.
+ * This is an ABSTRACT class that contains all the common functionality for our autonomous modes. It
+ * is not a real OpMode that can be run on its own. Instead, other classes like "BlueAuto" and
+ * "RedAuto" will EXTEND this class.
+ *
+ * <p>It defines the robot's hardware and common action methods, but requires specific values
+ * (aprilTagId and closeToGoal) to be provided by its subclasses.
  */
 public abstract class BaseAutonomous extends LinearOpMode {
 
-    //-----------------------------------------
+    // -----------------------------------------
     // --- CLASS MEMBERS (VARIABLES) ---
-    //-----------------------------------------
+    // -----------------------------------------
 
     /* Declare Drive Motors */
     protected DcMotor leftFrontDrive = null;
@@ -31,11 +31,11 @@ public abstract class BaseAutonomous extends LinearOpMode {
     protected int targetAprilTagId;
     protected boolean isCloseToGoal;
 
-
     /**
      * The constructor for this abstract class.
      *
-     * @param aprilTagId  The alliance-specific AprilTag ID to look for (e.g., 20 for Blue, 24 for Red).
+     * @param aprilTagId The alliance-specific AprilTag ID to look for (e.g., 20 for Blue, 24 for
+     *     Red).
      * @param closeToGoal A boolean indicating the starting position.
      */
     public BaseAutonomous(int aprilTagId, boolean closeToGoal) {
@@ -43,10 +43,8 @@ public abstract class BaseAutonomous extends LinearOpMode {
         this.isCloseToGoal = closeToGoal;
     }
 
-
     /**
-     * This is the main entry point for the autonomous mode.
-     * It runs once when "START" is pressed.
+     * This is the main entry point for the autonomous mode. It runs once when "START" is pressed.
      */
     @Override
     public void runOpMode() {
@@ -84,17 +82,14 @@ public abstract class BaseAutonomous extends LinearOpMode {
         // --- COMPLETION ---
         telemetry.addData("Path", "Complete");
         telemetry.update();
-        sleep(1000);  // Pause to display the final message.
+        sleep(1000); // Pause to display the final message.
     }
 
-
-    //-----------------------------------------
+    // -----------------------------------------
     // --- HARDWARE & ACTION METHODS ---
-    //-----------------------------------------
+    // -----------------------------------------
 
-    /**
-     * Initializes all the robot hardware from the configuration.
-     */
+    /** Initializes all the robot hardware from the configuration. */
     private void initializeHardware() {
         // Get the motors from the hardware map using the names from your robot config
         leftFrontDrive = hardwareMap.get(DcMotor.class, "left_front");
@@ -109,36 +104,28 @@ public abstract class BaseAutonomous extends LinearOpMode {
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
     }
 
-    /**
-     * Placeholder method to shoot artifacts.
-     */
+    /** Placeholder method to shoot artifacts. */
     public void shootArtifacts() {
         telemetry.addData("Action", "Shooting Artifacts");
         telemetry.update();
         sleep(1000); // Simulate time for shooting
     }
 
-    /**
-     * Placeholder method to drive to a line on the field.
-     */
+    /** Placeholder method to drive to a line on the field. */
     public void driveToLine(int lineNumber) {
         telemetry.addData("Action", "Driving to line %d", lineNumber);
         telemetry.update();
         sleep(1500); // Simulate time for driving
     }
 
-    /**
-     * Placeholder method to perform an action on a line.
-     */
+    /** Placeholder method to perform an action on a line. */
     public void grabLine() {
         telemetry.addData("Action", "Grabbing Line");
         telemetry.update();
         sleep(1000); // Simulate time for grabbing
     }
 
-    /**
-     * Placeholder method to drive to the main shooting area.
-     */
+    /** Placeholder method to drive to the main shooting area. */
     public void driveToShootingArea() {
         telemetry.addData("Action", "Driving to Shooting Area");
         telemetry.update();
