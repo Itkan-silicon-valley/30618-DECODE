@@ -12,11 +12,9 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
@@ -24,7 +22,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 // @Disabled
 public class Week2Limelightv1 extends LinearOpMode {
 
-    private ElapsedTime runtime = new ElapsedTime();
+    private final ElapsedTime runtime = new ElapsedTime();
     // drive motors
     DcMotorEx frontLeft, frontRight, backLeft, backRight;
     // other motors
@@ -45,7 +43,7 @@ public class Week2Limelightv1 extends LinearOpMode {
 
     // --- State Variables for Toggles ---
     boolean shoot = false;
-    boolean climbHold = false;
+
     boolean openHold = false;
 
     double distance = 0;
@@ -284,14 +282,11 @@ public class Week2Limelightv1 extends LinearOpMode {
                 // trying to fire
                 // Math.abs(shooter1.getVelocity() - newTargetVelocity) < 50
                 double error = newTargetVelocity - shooter1.getVelocity();
-                if (Math.abs(error) < 100) { // shooter1.getVelocity() >= newTargetVelocity) {
-                    // good to shoot
-                    shoot = true;
-                    // sleep(100);
-                } else {
-                    // need to spin up more
-                    shoot = false;
-                }
+                // shooter1.getVelocity() >= newTargetVelocity) {
+                // good to shoot
+                // sleep(100);
+                // need to spin up more
+                shoot = Math.abs(error) < 100;
 
                 // averageCapacity += ki * error;
                 if (capacityCtr++ % capacitySampingDistance == 0) {
@@ -490,7 +485,8 @@ public class Week2Limelightv1 extends LinearOpMode {
         // telemetry.addData("BBB2", Math.sin(totalAngleRadians));
         // telemetry.addData("BBB3", (TARGET_HEIGHT_MM - CAMERA_HEIGHT_MM));
 
-        return currentDistance;
+        // return currentDistance;
+        return totalAngleRadians;
     }
 
     private void rotate(double rx) {
